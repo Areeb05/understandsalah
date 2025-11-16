@@ -17,9 +17,17 @@ let audioStream = null;
 let isRecording = false;
 let chunks = [];
 
-// Transcription state
+// Transcription state with compact streaming
 let currentArabicText = '';
 let currentEnglishText = '';
+let lastTranscriptionTime = 0;
+let transcriptionBuffer = {
+    arabic: '',
+    english: '',
+    lastUpdate: 0,
+    pauseThreshold: 2000, // 2 seconds for breath pauses
+    maxLength: 300 // Maximum characters before truncation
+};
 
 /**
  * Show status message to user
@@ -38,13 +46,74 @@ function showStatus(message, type = 'info') {
 }
 
 /**
- * Update transcription display
+ * Smart text buffer for compact streaming mode
  */
-function updateTranscription(data) {
-    // Update Arabic transcription
-    if (data.arabic && data.arabic !== currentArabicText) {
-        currentArabicText = data.arabic;
-        arabicTranscription.textContent = data.arabic;
+function manageCompactTranscription(arabicText, englishText, timestamp = Date.now()) {
+    const timeDiff = timestamp - transcriptionBuffer.lastUpdate;
+
+    // Detect if this is a continuation (within pause threshold) or new text
+    const isContinuation = (timeDiff < transcriptionBuffer.pauseThreshold) &&
+                          transcriptionBuffer.arabic.trim().length > 0;
+
+    if (arabicText && arabicText.trim()) {
+        if (isContinuation) {
+            // Continue on same line with space
+            transcriptionBuffer.arabic = transcriptionBuffer.arabic.trim() + ' ' + arabicText.trim();
+        } else {
+            // Start new paragraph segment for structural pause
+            transcriptionBuffer.arabic = transcriptionBuffer.arabic.trim() + '\n\n' + arabicText.trim();
+        }
+
+        // Manage maximum length - keep recent content
+        if (transcriptionBuffer.arabic.length > transcriptionBuffer.maxLength) {
+            // Find a good break point (preferably at a line break)
+            let truncatePoint = transcriptionBuffer.arabic.length - transcriptionBuffer.maxLength + 100;
+            const lastBreak = transcriptionBuffer.arabic.lastIndexOf('\n\n', truncatePoint);
+
+            if (lastBreak > transcriptionBuffer.maxLength / 3) {
+                truncatePoint = lastBreak;
+            }
+
+            transcriptionBuffer.arabic = '...' + transcriptionBuffer.arabic.substring(truncatePoint);
+        }
+    }
+
+    if (englishText && englishText.trim()) {
+        if (isContinuation) {
+            transcriptionBuffer.english = transcriptionBuffer.english.trim() + ' ' + englishText.trim();
+        } else {
+            transcriptionBuffer.english = transcriptionBuffer.english.trim() + '\n\n' + englishText.trim();
+        }
+
+        // Apply same length management for English
+        if (transcriptionBuffer.english.length > transcriptionBuffer.maxLength * 0.8) {
+            let truncatePoint = transcriptionBuffer.english.length - (transcriptionBuffer.maxLength * 0.8) + 50;
+            const lastBreak = transcriptionBuffer.english.lastIndexOf('\n\n', truncatePoint);
+
+            if (lastBreak > transcriptionBuffer.maxLength * 0.8 / 2) {
+                truncatePoint = lastBreak;
+            }
+
+            transcriptionBuffer.english = '...' + transcriptionBuffer.english.substring(truncatePoint);
+        }
+    }
+
+    transcriptionBuffer.lastUpdate = timestamp;
+
+    // Update display
+    updateTranscriptionDisplay();
+}
+
+/**
+ * Update transcription display with smart buffering
+ */
+function updateTranscriptionDisplay() {
+    const arabicText = transcriptionBuffer.arabic.trim();
+    const englishText = transcriptionBuffer.english.trim();
+
+    // Update Arabic
+    if (arabicText !== arabicTranscription.textContent) {
+        arabicTranscription.textContent = arabicText || 'Waiting for speech...';
         arabicTranscription.classList.add('updating');
 
         setTimeout(() => {
@@ -52,10 +121,9 @@ function updateTranscription(data) {
         }, 300);
     }
 
-    // Update English translation
-    if (data.english && data.english !== currentEnglishText) {
-        currentEnglishText = data.english;
-        englishTranscription.textContent = data.english;
+    // Update English
+    if (englishText !== englishTranscription.textContent) {
+        englishTranscription.textContent = englishText || 'Waiting for translation...';
         englishTranscription.classList.add('updating');
 
         setTimeout(() => {
@@ -65,13 +133,28 @@ function updateTranscription(data) {
 }
 
 /**
- * Clear transcription display
+ * Update transcription display (legacy function, now uses smart buffering)
+ */
+function updateTranscription(data) {
+    const timestamp = Date.now();
+    manageCompactTranscription(data.arabic, data.english, timestamp);
+}
+
+/**
+ * Clear transcription display and reset buffers
  */
 function clearTranscriptions() {
+    // Clear legacy variables
     currentArabicText = '';
     currentEnglishText = '';
-    arabicTranscription.textContent = 'Waiting for speech...';
-    englishTranscription.textContent = 'Waiting for translation...';
+
+    // Clear compact streaming buffer
+    transcriptionBuffer.arabic = '';
+    transcriptionBuffer.english = '';
+    transcriptionBuffer.lastUpdate = 0;
+
+    // Update display
+    updateTranscriptionDisplay();
 }
 
 /**
