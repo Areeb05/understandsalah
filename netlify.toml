@@ -1,0 +1,20 @@
+[build]
+  # For static frontend deployment
+  publish = "public"
+  command = "cp public/index.html public/index.html"  # Simple build command
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# Environment variables for Google Cloud
+# Add these in Netlify dashboard:
+# GOOGLE_CREDENTIALS_JSON = your_service_account_json
+# NODE_ENV = production
+
+# Note: For WebSocket functionality, deploy the Node.js server
+# separately to Railway, Render, or Heroku, and update
+# the frontend's Socket.IO endpoint to point to that server.
+
+# Alternative: Convert to serverless functions for real-time features
+[functions]
+  directory = "netlify/functions"
