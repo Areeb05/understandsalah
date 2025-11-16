@@ -36,6 +36,16 @@
         </main>
     </div>
 
+    <!-- Fullscreen Prayer Mode Overlay -->
+    <div id="fullscreenOverlay" class="fullscreen-overlay hidden">
+        <div class="fullscreen-exit-zone" id="exitZone" title="Exit fullscreen"></div>
+        <div class="fullscreen-content">
+            <h2>Prayer Text - الصلاة</h2>
+            <div id="fullscreenTranscription" class="fullscreen-transcription arabic">Tap on Arabic or English text to enter fullscreen prayer mode</div>
+            <p class="fullscreen-hint pulsing" id="fullscreenHint">Tap anywhere to return</p>
+        </div>
+    </div>
+
     <!-- Netlify environment variable injection -->
     <script>
         // Make Netlify environment variables available to client

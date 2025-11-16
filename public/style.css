@@ -202,3 +202,160 @@ header h2 {
 .transcription-content.updating {
     animation: fadeIn 0.3s ease-in-out;
 }
+
+/* Fullscreen Prayer Mode */
+.fullscreen-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #4B003E; /* Dark purple background */
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    transition: opacity 0.3s ease;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+.fullscreen-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.fullscreen-content {
+    text-align: center;
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 20px;
+    border-radius: 12px;
+    margin: 20px;
+}
+
+.fullscreen-content h2 {
+    font-size: 32px;
+    margin-bottom: 30px;
+    font-weight: bold;
+    opacity: 0.8;
+}
+
+.fullscreen-transcription {
+    font-size: 96px;
+    line-height: 2.0;
+    font-weight: normal;
+    text-align: center;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    letter-spacing: 2px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    direction: rtl; /* Right-to-left for Arabic */
+}
+
+.fullscreen-transcription.arabic {
+    font-family: 'Arial', 'Helvetica', sans-serif;
+    direction: rtl;
+    font-size: 96px;
+    line-height: 1.8;
+}
+
+.fullscreen-transcription.english {
+    direction: ltr; /* Left-to-right for English */
+    font-size: 84px;
+    line-height: 2.2;
+}
+
+.fullscreen-hint {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 24px;
+    opacity: 0.6;
+    margin: 0;
+    text-align: center;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.3; }
+    50% { opacity: 0.8; }
+    100% { opacity: 0.3; }
+}
+
+.fullscreen-hint.pulsing {
+    animation: pulse 2s infinite;
+}
+
+/* Mobile optimizations for fullscreen prayer mode */
+@media (max-width: 768px) {
+    .fullscreen-content {
+        padding: 10px;
+        margin: 10px;
+        max-width: 95vw;
+        max-height: 95vh;
+    }
+
+    .fullscreen-content h2 {
+        font-size: 24px;
+        margin-bottom: 20px;
+    }
+
+    .fullscreen-transcription.arabic {
+        font-size: 72px;
+        line-height: 1.6;
+    }
+
+    .fullscreen-transcription.english {
+        font-size: 64px;
+        line-height: 1.8;
+    }
+
+    .fullscreen-hint {
+        bottom: 20px;
+        font-size: 18px;
+    }
+}
+
+/* Enable fullscreen mode */
+.fullscreen-enabled {
+    background: black !important;
+}
+
+.fullscreen-enabled body {
+    overflow: hidden !important;
+}
+
+/* Accessibility and touch targets */
+.fullscreen-exit-zone {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    z-index: 10001;
+}
+
+.fullscreen-exit-zone:before {
+    content: '✕';
+    pointer-events: none;
+}
+
+/* Alternative fullscreen styles for different prayer positions */
+@media (orientation: landscape) {
+    .fullscreen-transcription {
+        font-size: 84px; /* Slightly smaller for landscape */
+    }
+}

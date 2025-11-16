@@ -309,6 +309,205 @@ window.addEventListener('load', () => {
     });
 });
 
+// Fullscreen Prayer Mode variables
+let isFullscreen = false;
+let fullscreenLanguage = 'arabic'; // 'arabic' or 'english'
+let wakeLock = null;
+let fullscreenTimeout = null;
+
+// Fullscreen Mode Functions
+function enterFullscreen(language = 'arabic') {
+    const overlay = document.getElementById('fullscreenOverlay');
+    const transcription = document.getElementById('fullscreenTranscription');
+
+    // Set the language and content
+    fullscreenLanguage = language;
+    transcription.className = `fullscreen-transcription ${language}`;
+
+    const content = language === 'arabic' ? arabicTranscription.textContent : englishTranscription.textContent;
+    transcription.textContent = content;
+
+    // Request screen wake lock
+    requestWakeLock();
+
+    // Show fullscreen
+    overlay.classList.remove('hidden');
+    isFullscreen = true;
+
+    // Allow document body to be fullscreen
+    document.documentElement.requestFullscreen().catch(err => {
+        console.warn(`Error attempting to enable fullscreen: ${err.message}`);
+    });
+
+    showStatus('Bible prayer mode activated - Screen will stay awake', 'success');
+
+    // Auto-exit after 5 minutes to save battery
+    fullscreenTimeout = setTimeout(() => {
+        exitFullscreen();
+        showStatus('Auto-exited prayer mode after 5 minutes to save battery', 'info');
+    }, 5 * 60 * 1000);
+}
+
+function exitFullscreen() {
+    const overlay = document.getElementById('fullscreenOverlay');
+
+    // Hide fullscreen
+    overlay.classList.add('hidden');
+    isFullscreen = false;
+
+    // Release wake lock
+    releaseWakeLock();
+
+    // Exit document fullscreen if active
+    if (document.fullscreenElement) {
+        document.exitFullscreen().catch(err => {
+            console.warn(`Error attempting to exit fullscreen: ${err.message}`);
+        });
+    }
+
+    // Clear auto-exit timeout
+    if (fullscreenTimeout) {
+        clearTimeout(fullscreenTimeout);
+        fullscreenTimeout = null;
+    }
+
+    showStatus('Exited prayer mode', 'info');
+}
+
+// Screen Wake Lock Functions
+async function requestWakeLock() {
+    try {
+        // Create and play a silent video to keep screen awake (fallback for older browsers)
+        const video = document.createElement('video');
+        video.src = 'data:video/mp4;base64,CAEBHgAAAAAAAJABAAEAAAAAAAABAAAAAQAAAABAQACAgICAAB4AAAABAAAAAAAAAAAAAQEBAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEB';
+        video.loop = true;
+        video.muted = true;
+        video.style.position = 'absolute';
+        video.style.left = '-9999px';
+        video.style.top = '-9999px';
+        video.setAttribute('playsinline', '');
+        document.body.appendChild(video);
+
+        await video.play();
+
+        // Request screen wake lock if available
+        if ('wakeLock' in navigator) {
+            try {
+                wakeLock = await navigator.wakeLock.request('screen');
+                wakeLock.addEventListener('release', () => {
+                    console.log('Screen Wake Lock released');
+                });
+                console.log('Screen Wake Lock is active');
+            } catch (err) {
+                console.warn(`Wake Lock error: ${err.message}`);
+            }
+        }
+
+        // Store video reference for cleanup
+        window.wakeVideo = video;
+
+    } catch (error) {
+        console.warn('Failed to activate screen keep-awake:', error);
+        showStatus('Unable to keep screen awake - may turn off during prayer', 'info');
+    }
+}
+
+function releaseWakeLock() {
+    // Release wake lock
+    if (wakeLock !== null) {
+        wakeLock.release().then(() => {
+            wakeLock = null;
+        });
+    }
+
+    // Remove video element
+    if (window.wakeVideo) {
+        window.wakeVideo.pause();
+        window.wakeVideo.remove();
+        window.wakeVideo = null;
+    }
+}
+
+// Event Listeners for Fullscreen Mode
+document.addEventListener('DOMContentLoaded', () => {
+    const arabicBox = document.getElementById('arabicBox');
+    const englishBox = document.getElementById('englishBox');
+    const fullscreenOverlay = document.getElementById('fullscreenOverlay');
+    const fullscreenTranscription = document.getElementById('fullscreenTranscription');
+    const exitZone = document.getElementById('exitZone');
+
+    // Click handlers for entering fullscreen
+    arabicBox.addEventListener('click', (e) => {
+        if (!isRecording && arabicTranscription.textContent.trim() !== 'Waiting for speech...') {
+            e.preventDefault();
+            enterFullscreen('arabic');
+        }
+    });
+
+    englishBox.addEventListener('click', (e) => {
+        if (!isRecording && englishTranscription.textContent.trim() !== 'Waiting for translation...') {
+            e.preventDefault();
+            enterFullscreen('english');
+        }
+    });
+
+    // Exit fullscreen on overlay click
+    fullscreenOverlay.addEventListener('click', (e) => {
+        // Don't exit if clicking in content area
+        if (e.target.closest('.fullscreen-content')) {
+            return;
+        }
+        exitFullscreen();
+    });
+
+    // Exit fullscreen on exit zone click
+    exitZone.addEventListener('click', (e) => {
+        e.stopPropagation();
+        exitFullscreen();
+    });
+
+    // Handle fullscreen change events
+    document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement && isFullscreen) {
+            exitFullscreen();
+        }
+    });
+
+    // Handle visibility change (release wake lock if page becomes hidden)
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden && wakeLock) {
+            releaseWakeLock();
+        }
+    });
+
+    // Handle page unload
+    window.addEventListener('beforeunload', () => {
+        if (wakeLock) {
+            releaseWakeLock();
+        }
+    });
+
+    // Handle back button on mobile
+    window.addEventListener('popstate', () => {
+        if (isFullscreen) {
+            exitFullscreen();
+        }
+    });
+
+    // Update fullscreen content when transcription updates
+    const originalUpdateTranscription = window.updateTranscription;
+    window.updateTranscription = function(data) {
+        originalUpdateTranscription(data);
+
+        // Update fullscreen content if active
+        if (isFullscreen) {
+            const fullscreenTranscription = document.getElementById('fullscreenTranscription');
+            const content = fullscreenLanguage === 'arabic' ? arabicTranscription.textContent : englishTranscription.textContent;
+            fullscreenTranscription.textContent = content;
+        }
+    };
+});
+
 // Error handling for unhandled promises
 window.addEventListener('unhandledrejection', (event) => {
     console.error('Unhandled promise rejection:', event.reason);
