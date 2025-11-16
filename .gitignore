@@ -1,0 +1,12 @@
+node_modules/
+.env
+.env.local
+.env.*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+temp-creds/
+dist/
+build/
+// Add other patterns to ignore files generated during development

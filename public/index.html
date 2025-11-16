@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Understand Salah: Real-Time Transcription</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Understand Salah: Real-Time Transcription</h1>
+            <h2>Listen and Understand</h2>
+        </header>
+
+        <main>
+            <button id="recordButton" class="record-button">
+                <span id="buttonText">🎤 Start Recording</span>
+            </button>
+
+            <div class="transcription-section">
+                <div class="transcription-box" id="arabicBox">
+                    <label for="arabicTranscription">Transcription (Arabic) ➡️</label>
+                    <div id="arabicTranscription" class="transcription-content">Waiting for speech...</div>
+                </div>
+
+                <div class="transcription-box" id="englishBox">
+                    <label for="englishTranscription">Translation (English) ➡️</label>
+                    <div id="englishTranscription" class="transcription-content">Waiting for translation...</div>
+                </div>
+            </div>
+
+            <div id="statusMessage" class="status-message hidden">
+                <p id="statusText"></p>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
