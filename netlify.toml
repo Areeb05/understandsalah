@@ -8,8 +8,8 @@
 
 # Inject backend URL into the frontend
 [context.production.environment]
-  REACT_APP_BACKEND_URL = "https://your-railway-app.railway.app"
-  BACKEND_URL = "https://your-railway-app.railway.app"
+  REACT_APP_BACKEND_URL = "https://mm-us-production.up.railway.app"
+  BACKEND_URL = "https://mm-us-production.up.railway.app"
 
 # Note: For WebSocket functionality, the Node.js server is deployed
 # separately to Railway. The frontend connects to Railway for real-time features.
@@ -20,5 +20,5 @@
 
 [[redirects]]
   from = "/api/*"
-  to = "https://your-railway-app.railway.app/api/:splat"
+  to = "https://mm-us-production.up.railway.app/api/:splat"
   status = 200
