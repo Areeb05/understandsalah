@@ -6,10 +6,22 @@ const speech = require('@google-cloud/speech');
 const { Translate } = require('@google-cloud/translate').v2;
 const fs = require('fs');
 const path = require('path');
+const cors = require('cors');
 
 const app = express();
 const server = createServer(app);
-const io = new Server(server);
+
+// Configure CORS for cross-origin requests (Netlify frontend → Railway backend)
+const corsOptions = {
+    origin: true, // Allow all origins for now, restrict in production
+    methods: ["GET", "POST"],
+    credentials: true
+};
+app.use(cors(corsOptions));
+
+const io = new Server(server, {
+    cors: corsOptions
+});
 
 // Google Cloud credentials setup
 let credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;

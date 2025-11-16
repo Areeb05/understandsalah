@@ -1,20 +1,24 @@
 [build]
-  # For static frontend deployment
+  # For static frontend deployment only
   publish = "public"
-  command = "cp public/index.html public/index.html"  # Simple build command
+  command = "echo 'Building frontend for Netlify'"
 
 [build.environment]
   NODE_VERSION = "18"
 
-# Environment variables for Google Cloud
-# Add these in Netlify dashboard:
-# GOOGLE_CREDENTIALS_JSON = your_service_account_json
-# NODE_ENV = production
+# Inject backend URL into the frontend
+[context.production.environment]
+  REACT_APP_BACKEND_URL = "https://your-railway-app.railway.app"
+  BACKEND_URL = "https://your-railway-app.railway.app"
 
-# Note: For WebSocket functionality, deploy the Node.js server
-# separately to Railway, Render, or Heroku, and update
-# the frontend's Socket.IO endpoint to point to that server.
+# Note: For WebSocket functionality, the Node.js server is deployed
+# separately to Railway. The frontend connects to Railway for real-time features.
 
-# Alternative: Convert to serverless functions for real-time features
+# Disable server-side rendering/functions for static deployment
 [functions]
-  directory = "netlify/functions"
+  directory = ""
+
+[redirects]
+  from = "/api/*"
+  to = "https://your-railway-app.railway.app/api/:splat"
+  status = 200

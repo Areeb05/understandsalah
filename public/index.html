@@ -36,6 +36,14 @@
         </main>
     </div>
 
+    <!-- Netlify environment variable injection -->
+    <script>
+        // Make Netlify environment variables available to client
+        window.BACKEND_URL = process.env.REACT_APP_BACKEND_URL ||
+                           process.env.BACKEND_URL ||
+                           "https://your-railway-app.railway.app";
+    </script>
+
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="script.js"></script>
 </body>

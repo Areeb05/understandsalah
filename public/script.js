@@ -1,5 +1,7 @@
 // Initialize Socket.IO connection
-const socket = io();
+// Use environment variable for backend URL, fallback to current host
+const backendUrl = window.BACKEND_URL || window.location.origin;
+const socket = io(backendUrl);
 
 // DOM Elements
 const recordButton = document.getElementById('recordButton');
