@@ -100,8 +100,8 @@ async function processAudioChunk(buffers, socket) {
                 content: audioBuffer.toString('base64'),
             },
             config: {
-                encoding: 'LINEAR16',
-                sampleRateHertz: 16000,
+                encoding: 'WEBM_OPUS',
+                // Remove sampleRateHertz to let Google auto-detect from the WEBM OPUS header
                 languageCode: 'ar-SA', // Arabic (Saudi Arabia) - good for Islamic recitation
                 model: 'default',
                 useEnhanced: true,

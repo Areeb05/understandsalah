@@ -46,12 +46,10 @@
         </div>
     </div>
 
-    <!-- Netlify environment variable injection -->
+    <!-- Environment configuration -->
     <script>
-        // Make Netlify environment variables available to client
-        window.BACKEND_URL = process.env.REACT_APP_BACKEND_URL ||
-                           process.env.BACKEND_URL ||
-                           "https://your-railway-app.railway.app";
+        // Backend URL for Railway deployment
+        window.BACKEND_URL = "https://mm-us-production.up.railway.app";
     </script>
 
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>

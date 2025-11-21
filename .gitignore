@@ -10,3 +10,6 @@ temp-creds/
 dist/
 build/
 // Add other patterns to ignore files generated during development
+
+# Local Netlify folder
+.netlify
