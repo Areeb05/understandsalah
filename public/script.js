@@ -46,59 +46,49 @@ function showStatus(message, type = 'info') {
 }
 
 /**
- * Smart text buffer for compact streaming mode
+ * Cumulative text building for continuous prayer transcription
  */
-function manageCompactTranscription(arabicText, englishText, timestamp = Date.now()) {
-    const timeDiff = timestamp - transcriptionBuffer.lastUpdate;
-
-    // Detect if this is a continuation (within pause threshold) or new text
-    const isContinuation = (timeDiff < transcriptionBuffer.pauseThreshold) &&
-                          transcriptionBuffer.arabic.trim().length > 0;
+function manageCumulativeTranscription(arabicText, englishText) {
+    // For prayers, we want to continuously append without fragmentation
 
     if (arabicText && arabicText.trim()) {
-        if (isContinuation) {
-            // Continue on same line with space
-            transcriptionBuffer.arabic = transcriptionBuffer.arabic.trim() + ' ' + arabicText.trim();
+        // Clean up the text and append with appropriate spacing
+        const cleanArabic = arabicText.trim();
+        if (transcriptionBuffer.arabic.trim()) {
+            // If we already have text, append with space (avoiding double spaces)
+            const lastChar = transcriptionBuffer.arabic.trim().slice(-1);
+            const needsSpace = lastChar && ![' ', '\n'].includes(lastChar);
+            transcriptionBuffer.arabic += (needsSpace ? ' ' : '') + cleanArabic;
         } else {
-            // Start new paragraph segment for structural pause
-            transcriptionBuffer.arabic = transcriptionBuffer.arabic.trim() + '\n\n' + arabicText.trim();
+            // First text, no prefix needed
+            transcriptionBuffer.arabic = cleanArabic;
         }
 
-        // Manage maximum length - keep recent content
-        if (transcriptionBuffer.arabic.length > transcriptionBuffer.maxLength) {
-            // Find a good break point (preferably at a line break)
-            let truncatePoint = transcriptionBuffer.arabic.length - transcriptionBuffer.maxLength + 100;
-            const lastBreak = transcriptionBuffer.arabic.lastIndexOf('\n\n', truncatePoint);
-
-            if (lastBreak > transcriptionBuffer.maxLength / 3) {
-                truncatePoint = lastBreak;
-            }
-
-            transcriptionBuffer.arabic = '...' + transcriptionBuffer.arabic.substring(truncatePoint);
+        // For prayers, keep much more text than regular conversations (up to 2000 chars)
+        const maxPrayerLength = 2000;
+        if (transcriptionBuffer.arabic.length > maxPrayerLength) {
+            // Keep the most recent part of the prayer (last 1500 chars)
+            transcriptionBuffer.arabic = '...' + transcriptionBuffer.arabic.slice(-1500);
         }
     }
 
     if (englishText && englishText.trim()) {
-        if (isContinuation) {
-            transcriptionBuffer.english = transcriptionBuffer.english.trim() + ' ' + englishText.trim();
+        // Same logic for English translation
+        const cleanEnglish = englishText.trim();
+        if (transcriptionBuffer.english.trim()) {
+            const lastChar = transcriptionBuffer.english.trim().slice(-1);
+            const needsSpace = lastChar && ![' ', '\n'].includes(lastChar);
+            transcriptionBuffer.english += (needsSpace ? ' ' : '') + cleanEnglish;
         } else {
-            transcriptionBuffer.english = transcriptionBuffer.english.trim() + '\n\n' + englishText.trim();
+            transcriptionBuffer.english = cleanEnglish;
         }
 
-        // Apply same length management for English
-        if (transcriptionBuffer.english.length > transcriptionBuffer.maxLength * 0.8) {
-            let truncatePoint = transcriptionBuffer.english.length - (transcriptionBuffer.maxLength * 0.8) + 50;
-            const lastBreak = transcriptionBuffer.english.lastIndexOf('\n\n', truncatePoint);
-
-            if (lastBreak > transcriptionBuffer.maxLength * 0.8 / 2) {
-                truncatePoint = lastBreak;
-            }
-
-            transcriptionBuffer.english = '...' + transcriptionBuffer.english.substring(truncatePoint);
+        // Keep same length limit for English
+        const maxPrayerLength = 2000;
+        if (transcriptionBuffer.english.length > maxPrayerLength) {
+            transcriptionBuffer.english = '...' + transcriptionBuffer.english.slice(-1500);
         }
     }
-
-    transcriptionBuffer.lastUpdate = timestamp;
 
     // Update display
     updateTranscriptionDisplay();
@@ -133,11 +123,11 @@ function updateTranscriptionDisplay() {
 }
 
 /**
- * Update transcription display (legacy function, now uses smart buffering)
+ * Update transcription display (now uses cumulative prayer transcription)
  */
 function updateTranscription(data) {
-    const timestamp = Date.now();
-    manageCompactTranscription(data.arabic, data.english, timestamp);
+    // Use cumulative transcription for continuous prayer building
+    manageCumulativeTranscription(data.arabic, data.english);
 }
 
 /**
@@ -398,6 +388,10 @@ let fullscreenLanguage = 'arabic'; // 'arabic' or 'english'
 let wakeLock = null;
 let fullscreenTimeout = null;
 
+// Individual Box Fullscreen variables
+let isIndividualFullscreen = false;
+let individualFullscreenType = null; // 'arabic' or 'english'
+
 // Fullscreen Mode Functions
 function enterFullscreen(language = 'arabic') {
     const overlay = document.getElementById('fullscreenOverlay');
@@ -455,6 +449,47 @@ function exitFullscreen() {
     }
 
     showStatus('Exited prayer mode', 'info');
+}
+
+// Individual Box Fullscreen Functions
+function enterIndividualFullscreen(type) {
+    // Exit any existing fullscreen modes
+    if (isFullscreen) {
+        exitFullscreen();
+    }
+    if (isIndividualFullscreen) {
+        exitIndividualFullscreen();
+    }
+
+    const overlayId = type === 'arabic' ? 'arabicFullscreenOverlay' : 'englishFullscreenOverlay';
+    const textElementId = type === 'arabic' ? 'arabicFullscreenText' : 'englishFullscreenText';
+    const sourceElement = type === 'arabic' ? arabicTranscription : englishTranscription;
+
+    const overlay = document.getElementById(overlayId);
+    const textElement = document.getElementById(textElementId);
+
+    // Set content and show overlay
+    textElement.textContent = sourceElement.textContent;
+    overlay.classList.remove('hidden');
+
+    isIndividualFullscreen = true;
+    individualFullscreenType = type;
+
+    showStatus(`Fullscreen ${type} activated`, 'success');
+}
+
+function exitIndividualFullscreen() {
+    if (!isIndividualFullscreen) return;
+
+    const overlayId = individualFullscreenType === 'arabic' ? 'arabicFullscreenOverlay' : 'englishFullscreenOverlay';
+    const overlay = document.getElementById(overlayId);
+
+    overlay.classList.add('hidden');
+
+    isIndividualFullscreen = false;
+    individualFullscreenType = null;
+
+    showStatus('Exited fullscreen', 'info');
 }
 
 // Screen Wake Lock Functions
@@ -523,14 +558,59 @@ document.addEventListener('DOMContentLoaded', () => {
     arabicBox.addEventListener('click', (e) => {
         if (!isRecording && arabicTranscription.textContent.trim() !== 'Waiting for speech...') {
             e.preventDefault();
-            enterFullscreen('arabic');
+            // Long press or double tap for individual fullscreen on mobile/touch devices
+            if (e.type === 'dblclick' || (e.touches && e.touches.length === 1)) {
+                enterIndividualFullscreen('arabic');
+            } else {
+                enterFullscreen('arabic');
+            }
         }
     });
 
     englishBox.addEventListener('click', (e) => {
         if (!isRecording && englishTranscription.textContent.trim() !== 'Waiting for translation...') {
             e.preventDefault();
-            enterFullscreen('english');
+            // Long press or double tap for individual fullscreen on mobile/touch devices
+            if (e.type === 'dblclick' || (e.touches && e.touches.length === 1)) {
+                enterIndividualFullscreen('english');
+            } else {
+                enterFullscreen('english');
+            }
+        }
+    });
+
+    // Add touch/double-click event listeners for individual fullscreen
+    arabicBox.addEventListener('dblclick', (e) => {
+        e.preventDefault();
+        enterIndividualFullscreen('arabic');
+    });
+
+    englishBox.addEventListener('dblclick', (e) => {
+        e.preventDefault();
+        enterIndividualFullscreen('english');
+    });
+
+    // Touch events for mobile (long press alternative)
+    let touchStartTime = 0;
+    arabicBox.addEventListener('touchstart', (e) => {
+        touchStartTime = Date.now();
+    });
+
+    arabicBox.addEventListener('touchend', (e) => {
+        if (Date.now() - touchStartTime > 500 && !isRecording) { // Long press > 500ms
+            e.preventDefault();
+            enterIndividualFullscreen('arabic');
+        }
+    });
+
+    englishBox.addEventListener('touchstart', (e) => {
+        touchStartTime = Date.now();
+    });
+
+    englishBox.addEventListener('touchend', (e) => {
+        if (Date.now() - touchStartTime > 500 && !isRecording) { // Long press > 500ms
+            e.preventDefault();
+            enterIndividualFullscreen('english');
         }
     });
 
@@ -547,6 +627,20 @@ document.addEventListener('DOMContentLoaded', () => {
     exitZone.addEventListener('click', (e) => {
         e.stopPropagation();
         exitFullscreen();
+    });
+
+    // Individual fullscreen exit zones
+    const arabicExitZone = document.getElementById('arabicExitZone');
+    const englishExitZone = document.getElementById('englishExitZone');
+
+    arabicExitZone.addEventListener('click', (e) => {
+        e.stopPropagation();
+        exitIndividualFullscreen();
+    });
+
+    englishExitZone.addEventListener('click', (e) => {
+        e.stopPropagation();
+        exitIndividualFullscreen();
     });
 
     // Handle fullscreen change events
@@ -582,11 +676,21 @@ document.addEventListener('DOMContentLoaded', () => {
     window.updateTranscription = function(data) {
         originalUpdateTranscription(data);
 
-        // Update fullscreen content if active
+        // Update prayer mode fullscreen content if active
         if (isFullscreen) {
             const fullscreenTranscription = document.getElementById('fullscreenTranscription');
             const content = fullscreenLanguage === 'arabic' ? arabicTranscription.textContent : englishTranscription.textContent;
             fullscreenTranscription.textContent = content;
+        }
+
+        // Update individual fullscreen content if active
+        if (isIndividualFullscreen) {
+            const textElementId = individualFullscreenType === 'arabic' ? 'arabicFullscreenText' : 'englishFullscreenText';
+            const sourceElement = individualFullscreenType === 'arabic' ? arabicTranscription : englishTranscription;
+            const textElement = document.getElementById(textElementId);
+            if (textElement) {
+                textElement.textContent = sourceElement.textContent;
+            }
         }
     };
 });

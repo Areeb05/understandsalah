@@ -359,3 +359,166 @@ header h2 {
         font-size: 84px; /* Slightly smaller for landscape */
     }
 }
+
+/* Individual Box Fullscreen Overlays */
+.individual-fullscreen-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #4B003E; /* Dark purple background */
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    transition: opacity 0.3s ease;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+.individual-fullscreen-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.individual-fullscreen-content {
+    text-align: center;
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 20px;
+    border-radius: 12px;
+    margin: 20px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+}
+
+.individual-fullscreen-content.arabic {
+    direction: rtl;
+}
+
+.individual-fullscreen-content.english {
+    direction: ltr;
+}
+
+.individual-fullscreen-text {
+    font-size: 72px;
+    line-height: 1.8;
+    font-weight: normal;
+    text-align: center;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    max-width: 100%;
+    padding: 20px;
+}
+
+.individual-fullscreen-text.arabic {
+    font-family: 'Arial', 'Helvetica', sans-serif;
+    direction: rtl;
+    font-size: 72px;
+    line-height: 1.6;
+}
+
+.individual-fullscreen-text.english {
+    direction: ltr;
+    font-size: 64px;
+    line-height: 1.8;
+}
+
+/* Individual fullscreen exit zones */
+.individual-exit-zone {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    z-index: 10001;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.individual-exit-zone:hover {
+    background: rgba(255,255,255,0.2);
+}
+
+/* Mobile optimizations for individual fullscreen mode */
+@media (max-width: 768px) {
+    .individual-fullscreen-content {
+        padding: 10px;
+        margin: 10px;
+        max-width: 95vw;
+        max-height: 95vh;
+    }
+
+    .individual-fullscreen-text.arabic {
+        font-size: 54px;
+        line-height: 1.4;
+        padding: 15px;
+    }
+
+    .individual-fullscreen-text.english {
+        font-size: 48px;
+        line-height: 1.6;
+        padding: 15px;
+    }
+
+    .individual-exit-zone {
+        top: 15px;
+        right: 15px;
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .individual-fullscreen-text.arabic {
+        font-size: 42px;
+        line-height: 1.3;
+    }
+
+    .individual-fullscreen-text.english {
+        font-size: 38px;
+        line-height: 1.4;
+    }
+}
+
+/* Touch-friendly interactions */
+@media (hover: none) and (pointer: coarse) {
+    .individual-exit-zone {
+        width: 70px;
+        height: 70px;
+        font-size: 28px;
+    }
+}
+
+/* Landscape mode adjustments */
+@media (orientation: landscape) {
+    .individual-fullscreen-text {
+        font-size: 60px; /* Slightly smaller for landscape */
+    }
+
+    .individual-fullscreen-text.arabic {
+        font-size: 60px;
+    }
+
+    .individual-fullscreen-text.english {
+        font-size: 56px;
+    }
+}
