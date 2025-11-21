@@ -8,6 +8,11 @@ const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
 
+// Audio processing dependencies
+const ffmpeg = require('fluent-ffmpeg');
+const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+ffmpeg.setFfmpegPath(ffmpegPath);
+
 const app = express();
 const server = createServer(app);
 
@@ -89,19 +94,68 @@ io.on('connection', (socket) => {
     });
 });
 
+// Convert WEBM to WAV using ffmpeg
+function convertWebmToWav(webmBuffer) {
+    return new Promise((resolve, reject) => {
+        const tempInputPath = path.join(__dirname, `temp-input-${Date.now()}.webm`);
+        const tempOutputPath = path.join(__dirname, `temp-output-${Date.now()}.wav`);
+
+        // Write input buffer to temporary file
+        fs.writeFileSync(tempInputPath, webmBuffer);
+
+        // Convert using ffmpeg
+        ffmpeg(tempInputPath)
+            .inputFormat('webm')
+            .audioCodec('pcm_s16le')
+            .audioChannels(1)
+            .audioFrequency(16000)
+            .outputFormat('wav')
+            .output(tempOutputPath)
+            .on('end', () => {
+                try {
+                    // Read the converted file
+                    const wavBuffer = fs.readFileSync(tempOutputPath);
+
+                    // Clean up temporary files
+                    fs.unlinkSync(tempInputPath);
+                    fs.unlinkSync(tempOutputPath);
+
+                    resolve(wavBuffer);
+                } catch (error) {
+                    reject(error);
+                }
+            })
+            .on('error', (err) => {
+                // Clean up temporary files on error
+                try {
+                    fs.unlinkSync(tempInputPath);
+                    if (fs.existsSync(tempOutputPath)) {
+                        fs.unlinkSync(tempOutputPath);
+                    }
+                } catch (cleanupError) {
+                    console.warn('Failed to cleanup temp files:', cleanupError);
+                }
+                reject(err);
+            })
+            .run();
+    });
+}
+
 // Process audio chunk for speech recognition and translation
 async function processAudioChunk(buffers, socket) {
     try {
-        const audioBuffer = Buffer.concat(buffers);
+        // Convert WEBM audio to WAV with 16kHz sample rate for Google Speech API
+        const webmBuffer = Buffer.concat(buffers);
+        const wavBuffer = await convertWebmToWav(webmBuffer);
 
         // Configure speech recognition for Arabic
         const request = {
             audio: {
-                content: audioBuffer.toString('base64'),
+                content: wavBuffer.toString('base64'),
             },
             config: {
-                encoding: 'WEBM_OPUS',
-                // Remove sampleRateHertz to let Google auto-detect from the WEBM OPUS header
+                encoding: 'LINEAR16',
+                sampleRateHertz: 16000,
                 languageCode: 'ar-SA', // Arabic (Saudi Arabia) - good for Islamic recitation
                 model: 'default',
                 useEnhanced: true,
