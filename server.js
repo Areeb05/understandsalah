@@ -68,11 +68,35 @@ io.on('connection', (socket) => {
     socket.on('start-recording', () => {
         console.log('Recording started for client:', socket.id);
         clientAudioBuffers.set(socket.id, []); // Initialize empty buffer for this client
+
+        // Start real-time processing interval (process every 3 seconds)
+        let lastProcessedIndex = 0;
+        const processingInterval = setInterval(async () => {
+            const buffers = clientAudioBuffers.get(socket.id);
+            if (buffers && buffers.length >= lastProcessedIndex + 3) { // Have at least 3 new chunks since last processing
+                try {
+                    // Process the accumulated chunks from lastProcessedIndex to current
+                    const chunksToProcess = buffers.slice(lastProcessedIndex);
+                    lastProcessedIndex = buffers.length - 1; // Keep some overlap for context
+
+                    if (chunksToProcess.length >= 3) { // Minimum chunks for processing
+                        console.log(`Processing ${chunksToProcess.length} chunks in real-time for client ${socket.id}`);
+                        await processAudioChunk(chunksToProcess, socket, true); // true = real-time mode
+                    }
+                } catch (error) {
+                    console.error('Error in real-time processing:', error);
+                    // Continue recording even if processing fails
+                }
+            }
+        }, 3000); // Process every 3 seconds
+
+        // Store interval ID for cleanup
+        socket.processingInterval = processingInterval;
         socket.emit('recording-started');
     });
 
     socket.on('audio-chunk', (audioData) => {
-        // Store audio chunk for this client (no real-time processing)
+        // Store audio chunk for this client
         const buffers = clientAudioBuffers.get(socket.id);
         if (buffers) {
             buffers.push(Buffer.from(audioData));
@@ -82,20 +106,22 @@ io.on('connection', (socket) => {
     socket.on('stop-recording', async () => {
         console.log('Recording stopped for client:', socket.id);
 
-        // Process the complete recording
-        const audioBuffers = clientAudioBuffers.get(socket.id);
-        if (audioBuffers && audioBuffers.length > 0) {
-            console.log(`Processing complete recording for client ${socket.id}: ${audioBuffers.length} chunks`);
+        // Clear processing interval
+        if (socket.processingInterval) {
+            clearInterval(socket.processingInterval);
+            socket.processingInterval = null;
+        }
+
+        // For final processing, combine ALL chunks into one complete recording
+        const allBuffers = clientAudioBuffers.get(socket.id);
+        if (allBuffers && allBuffers.length > 0) {
+            console.log(`Processing final complete recording for client ${socket.id}: ${allBuffers.length} chunks`);
 
             try {
-                // Send processing status
-                socket.emit('processing-start');
-
-                await processAudioChunk(audioBuffers, socket);
-
+                await processCompleteFinalRecording(allBuffers, socket);
                 socket.emit('processing-complete');
             } catch (error) {
-                console.error('Error processing complete recording:', error);
+                console.error('Error processing final recording:', error);
                 socket.emit('error', 'Error processing recording: ' + error.message);
             }
         }
@@ -107,6 +133,10 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         console.log('Client disconnected:', socket.id);
+        // Clear processing interval
+        if (socket.processingInterval) {
+            clearInterval(socket.processingInterval);
+        }
         // Clean up any remaining buffers for this client
         clientAudioBuffers.delete(socket.id);
     });
@@ -207,6 +237,12 @@ async function processAudioChunk(buffers, socket) {
         console.error('Error processing audio chunk:', error);
         socket.emit('error', 'Error processing speech: ' + error.message);
     }
+}
+
+// Process final complete recording when recording stops
+async function processCompleteFinalRecording(buffers, socket) {
+    // Same as processAudioChunk but for the final complete recording
+    return processAudioChunk(buffers, socket);
 }
 
 // Start server
