@@ -58,8 +58,8 @@ try {
 // Serve static files
 app.use(express.static('public'));
 
-// Store audio data temporarily for processing
-let audioBuffers = [];
+// Store audio data temporarily for processing (per client)
+let clientAudioBuffers = new Map(); // socket.id -> audio buffers array
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
@@ -67,30 +67,48 @@ io.on('connection', (socket) => {
 
     socket.on('start-recording', () => {
         console.log('Recording started for client:', socket.id);
-        audioBuffers = []; // Clear previous buffers
+        clientAudioBuffers.set(socket.id, []); // Initialize empty buffer for this client
         socket.emit('recording-started');
     });
 
-    socket.on('audio-chunk', async (audioData) => {
-        // Store audio chunk
-        audioBuffers.push(Buffer.from(audioData));
-
-        // Process audio when we have enough data (every few chunks)
-        if (audioBuffers.length >= 2) { // Process every 2 chunks for real-time feel
-            await processAudioChunk(audioBuffers, socket);
-            audioBuffers = []; // Clear processed buffers
+    socket.on('audio-chunk', (audioData) => {
+        // Store audio chunk for this client (no real-time processing)
+        const buffers = clientAudioBuffers.get(socket.id);
+        if (buffers) {
+            buffers.push(Buffer.from(audioData));
         }
     });
 
-    socket.on('stop-recording', () => {
+    socket.on('stop-recording', async () => {
         console.log('Recording stopped for client:', socket.id);
+
+        // Process the complete recording
+        const audioBuffers = clientAudioBuffers.get(socket.id);
+        if (audioBuffers && audioBuffers.length > 0) {
+            console.log(`Processing complete recording for client ${socket.id}: ${audioBuffers.length} chunks`);
+
+            try {
+                // Send processing status
+                socket.emit('processing-start');
+
+                await processAudioChunk(audioBuffers, socket);
+
+                socket.emit('processing-complete');
+            } catch (error) {
+                console.error('Error processing complete recording:', error);
+                socket.emit('error', 'Error processing recording: ' + error.message);
+            }
+        }
+
+        // Clean up
+        clientAudioBuffers.delete(socket.id);
         socket.emit('recording-stopped');
-        audioBuffers = []; // Clear buffers
     });
 
     socket.on('disconnect', () => {
         console.log('Client disconnected:', socket.id);
-        audioBuffers = [];
+        // Clean up any remaining buffers for this client
+        clientAudioBuffers.delete(socket.id);
     });
 });
 
@@ -141,7 +159,7 @@ function convertWebmToWav(webmBuffer) {
     });
 }
 
-// Process audio chunk for speech recognition and translation
+// Process complete recording for speech recognition and translation
 async function processAudioChunk(buffers, socket) {
     try {
         // Convert WEBM audio to WAV with 16kHz sample rate for Google Speech API
