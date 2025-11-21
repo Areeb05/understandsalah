@@ -111,12 +111,6 @@ header h2 {
     align-items: center;
 }
 
-.transcription-box label::after {
-    content: "➡️";
-    margin-left: auto;
-    color: #666;
-}
-
 .transcription-content {
     min-height: 80px;
     color: #333;
