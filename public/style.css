@@ -129,6 +129,68 @@ header h2 {
     border-radius: 8px;
 }
 
+/* Fullscreen Buttons */
+.fullscreen-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 16px;
+    line-height: 1;
+    color: #666;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    z-index: 2;
+    padding: 0;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.fullscreen-btn:hover {
+    background: white;
+    color: #333;
+    transform: scale(1.05);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+.fullscreen-btn:active {
+    transform: scale(0.95);
+    background: #f0f0f0;
+}
+
+/* Mobile styles for fullscreen buttons */
+@media (max-width: 768px) {
+    .fullscreen-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 18px;
+        top: 8px;
+        right: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .fullscreen-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+        top: 6px;
+        right: 6px;
+    }
+}
+
+/* Position relative for absolute positioning of fullscreen button */
+.transcription-box {
+    position: relative;
+}
+
 /* Status Message */
 .status-message {
     margin-top: 20px;

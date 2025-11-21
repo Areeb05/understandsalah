@@ -614,6 +614,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Individual fullscreen button event handlers
+    const arabicFullscreenBtn = document.getElementById('arabicFullscreenBtn');
+    const englishFullscreenBtn = document.getElementById('englishFullscreenBtn');
+
+    arabicFullscreenBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent triggering the box click
+        if (arabicTranscription.textContent.trim() !== 'Waiting for speech...') {
+            enterIndividualFullscreen('arabic');
+        }
+    });
+
+    englishFullscreenBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent triggering the box click
+        if (englishTranscription.textContent.trim() !== 'Waiting for translation...') {
+            enterIndividualFullscreen('english');
+        }
+    });
+
     // Exit fullscreen on overlay click
     fullscreenOverlay.addEventListener('click', (e) => {
         // Don't exit if clicking in content area
